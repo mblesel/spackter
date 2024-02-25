@@ -15,7 +15,7 @@ import shutil
 
 spackter = typer.Typer()
 console = Console()
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 
 def get_allow_errors_options(allow_errors, no_allow_errors):
@@ -236,6 +236,14 @@ def select_stack(name, id: bool):
             if not entry == "data" and spackter_stacks[entry]["id"] == int(name):
                 stacks.append(spackter_stacks[entry])
     return stacks
+
+
+def remove_stack(spack_root: Path):
+    stacks = read_stacks_file()
+    if stacks:
+        if stacks.pop(spack_root.resolve().as_posix(), None):
+            stacks["data"]["stack_count"] -= 1
+            write_stacks_file(stacks)
     
 
 def version_callback(value: bool):
@@ -244,7 +252,7 @@ def version_callback(value: bool):
         raise typer.Exit()
 
 
-# TODO
+# TODO also allow rename?
 @spackter.command(help=
     """
     NOT YET IMPLEMENTED
@@ -265,14 +273,56 @@ def add():
     print("===> TODO")
 
 
-# TODO
+# TODO --yes-to-all?
 @spackter.command(help=
     """
-    NOT YET IMPLEMENTED
+    Deletes a spack stack.
+    --only-spackter-entry can be set to only remove the spackter database entry and not delete the spack stack from disk.
     """
 )
-def delete():
-    print("===> TODO")
+def delete(
+    name: Annotated[str, 
+        typer.Argument(help=
+        """
+        Name of spack stack, or ID of spack stack if '--id' option is given.
+        """
+        )],
+    id: Annotated[Optional[bool],
+        typer.Option("--id", help=
+        """
+        ID of spack stack. Needed if two stack with same name exist at different prefixes.
+        """
+        )] = False,
+    only_spackter_entry: Annotated[Optional[bool],
+        typer.Option("--only-spackter-entry", help=
+        """
+        Only remove the spack stack entry from spackter database and do not delete from disk.
+        """
+        )] = False
+):
+    selected = select_stack(name, id)
+    if not selected:
+        if id:
+            print(f"===> Could not find a spack stack with the id '{name}'.")
+        else:
+            print(f"===> Could not find a spack stack with the name '{name}'.")
+        print("===> Aborting.")
+        raise typer.Exit(code=1)
+    elif len(selected) > 1:
+        print(f"===> There are multiple spack stacks with the name '{name}':")
+        print_compact_list(only_name=name)
+        print("===> Use 'spackter load <id> --id' to specify the intended spack stack.")
+        print(f"===> Aborting.")
+        raise typer.Exit(code=1)
+    else:
+        stack = selected[0]
+        spack_root = Path(selected[0]["prefix"] + "/" + selected[0]["name"])
+        if not only_spackter_entry and spack_root.exists():
+            if typer.confirm(f"===> Delete '{spack_root}' from disk?"):
+                shutil.rmtree(spack_root)
+                print(f"===> '{spack_root}' deleted.")
+        print(f"===> Removing '{selected[0]['name']}' from spackter database.")
+        remove_stack(spack_root)
 
 
 # TODO how does spack load work?
@@ -295,7 +345,8 @@ def load(
         ID of spack stack. Needed if two stack with same name exist at different prefixes.
         """
         )] = False,
-    only_env_script: Annotated[Optional[bool], typer.Option("--only-env-script")] = False):
+    only_env_script: Annotated[Optional[bool], typer.Option("--only-env-script")] = False
+):
     selected = select_stack(name, id)
     if not selected:
         if id:
@@ -330,6 +381,7 @@ def list():
     print_compact_list()
 
 
+# TODO Move individual actions into functions?
 # TODO clone specific spack branch
 # TODO spack mirrors
 # TODO see if typer has something for possible values of an option
@@ -410,11 +462,7 @@ def create(
     if spack_root.exists():
         if typer.confirm("===> " + spack_root.resolve().as_posix() + " already exists. Overwrite it?"):
             shutil.rmtree(spack_root)
-            stacks = read_stacks_file()
-            if stacks:
-                if stacks.pop(spack_root.resolve().as_posix(), None):
-                    stacks["data"]["stack_count"] -= 1
-                    write_stacks_file(stacks)
+            remove_stack()
         else:
             print("===> Exiting")
             raise typer.Exit()
