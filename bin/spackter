@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -e
+
+SPACKTER_ROOT=$(readlink -f $(dirname ${BASH_SOURCE[0]})/..)
+SPACKTER_BIN=$(readlink -f $(dirname ${BASH_SOURCE[0]}))
+PYTHON_BIN=$SPACKTER_ROOT/.venv/bin/python
+PIP_BIN=$SPACKTER_ROOT/.venv/bin/pip
+
+
+if test -f ${PYTHON_BIN}; then
+    ${PYTHON_BIN} ${SPACKTER_BIN}/spackter.py "$@"
+else
+    echo "==> Required Python environment for Spackter was not found at: ${SPACKTER_ROOT}/.venv"
+    # TODO add user confirmation
+    echo "==> Installing environment at: ${SPACKTER_ROOT}/.venv"
+    # TODO check for working python on system
+    /usr/bin/env python -m venv ${SPACKTER_ROOT}/.venv --prompt Spackter
+    ${PIP_BIN} install --upgrade pip
+    ${PIP_BIN} install typer[all]
+    ${PIP_BIN} install pyyaml
+    echo "==> Environtment installed. Starting Spackter"
+    ${PYTHON_BIN} ${SPACKTER_BIN}/spackter.py "$@"
+fi
+
+
