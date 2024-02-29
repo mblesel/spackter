@@ -1,0 +1,9 @@
+{
+  "exclude": [ ".venv" ],
+  "venvPath": "./",
+  "venv": ".venv/",
+
+  "reportTypeshedErrors": true,
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false
+}
