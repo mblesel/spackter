@@ -121,7 +121,7 @@ def spack_install(base_cmd: str, package: str, compiler: str, allow_errors_optio
     print(f"===> Installing {package}")
     cmd = base_cmd + f"spack install {package}"
     if compiler:
-        cmd += " %{compiler}"
+        cmd += f" %{compiler}"
     cmd += ";"
     result = run_shell_cmd(cmd, error_exit=False)
     if not result:
