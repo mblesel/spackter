@@ -367,7 +367,7 @@ def load(
             print(f"===> Loading spack stack: {stack['name']} (ID {stack['id']})")
             print("===> Source this environment script:")
             print(f"{stack['env_script']}")
-            print("===> Using the 'spackter-find' command from your shell will load the stack automatically.")
+            print("===> Using the 'spackter-load' command from your shell will load the stack automatically.")
         else:
             print(f"{stack['env_script']}")
         
