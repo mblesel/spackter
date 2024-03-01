@@ -462,7 +462,7 @@ def create(
     if spack_root.exists():
         if typer.confirm("===> " + spack_root.resolve().as_posix() + " already exists. Overwrite it?"):
             shutil.rmtree(spack_root)
-            remove_stack()
+            remove_stack(spack_root)
         else:
             print("===> Exiting")
             raise typer.Exit()
