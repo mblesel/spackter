@@ -19,6 +19,8 @@ else
     ${PIP_BIN} install --upgrade pip
     ${PIP_BIN} install typer[all]
     ${PIP_BIN} install pyyaml
+    ${PIP_BIN} install GitPython
+    ${PIP_BIN} install Requests
     echo "==> Environtment installed. Starting Spackter"
     ${PYTHON_BIN} ${SPACKTER_BIN}/spackter.py "$@"
 fi

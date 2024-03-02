@@ -8,14 +8,16 @@ from rich.table import Table
 from rich.align import Align
 from pathlib import Path
 from datetime import date
+from git import Repo
 import subprocess
 import os
 import shutil
+import requests
 
 
 spackter = typer.Typer()
 console = Console()
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 
 
 def get_allow_errors_options(allow_errors, no_allow_errors):
@@ -82,12 +84,15 @@ def run_shell_cmd(cmd: str, print_cmd=True, error_exit=True):
         return True
 
 
-def apply_patch(file, spack_root, allow_errors_options):
+def apply_patch(file, spack_repo, allow_errors_options):
     print(f"===> Applying {file.name}")
-    cmd = f"cd {spack_root};"
-    cmd += f"git apply --verbose {file};"
-    result = run_shell_cmd(cmd, error_exit=False)
-    if not result:
+    try:
+        result = spack_repo.git.execute(['git', 'apply', '--verbose', f'{file.resolve().as_posix()}'], with_extended_output=True)
+        print(result[1])
+        print(result[2])
+        return True
+    except Exception as e:
+        print(e)
         if "patch" in allow_errors_options:
             if allow_errors_options["patch"]:
                 print(f"===> Skipping patch: {file.name}")
@@ -97,27 +102,33 @@ def apply_patch(file, spack_root, allow_errors_options):
         elif not typer.confirm(f"===> Skip patch: {file.name}?"):
             print("===> Exiting.")
             raise typer.Exit(code=1)
-    return result
+        return False
 
 
-def apply_pr(pr, spack_root, allow_errors_options):
+def apply_pr(pr, spack_repo, allow_errors_options):
     print(f"===> Applying PR {pr}")
-    cmd = f"cd {spack_root};"
-    cmd += f'curl --fail --location --remote-name "https://github.com/spack/spack/pull/{pr}.diff";'
-    cmd += f"git apply --verbose {pr}.diff;"
     # TODO delete diff file while still getting error code from git apply command
-    result = run_shell_cmd(cmd, error_exit=False)
-    if not result:
+    pr_data = requests.get(f"https://github.com/spack/spack/pull/{pr}.diff")
+    with open (f"{spack_repo.working_dir}/{pr}.diff", "w") as file:
+        file.write(pr_data.text)
+    try:
+        result = spack_repo.git.execute(['git', 'apply', '--verbose', f'{pr}.diff'], with_extended_output=True)
+        print(result[1])
+        print(result[2])
+        return True
+    except Exception as e:
+        print(e)
         if "pr" in allow_errors_options:
             if allow_errors_options["pr"]:
                 print(f"===> Skipping PR: {pr}")
+                return False
             else:
                 print("===> Exiting.")
                 raise typer.Exit(code=1)
         elif not typer.confirm(f"===> Skip PR {pr}?"):
             print("===> Exiting.")
             raise typer.Exit(code=1)
-    return result
+        return False
 
 
 def spack_install(base_cmd: str, package: str, compiler: Optional[str], allow_errors_options):
@@ -472,8 +483,7 @@ def create(
             raise typer.Exit()
 
     print(f"===> Creating new spack stack at: {spack_root}")
-    cmd = "git clone https://github.com/spack/spack.git " + spack_root.resolve().as_posix()
-    run_shell_cmd(cmd)
+    spack_repo = Repo.clone_from("https://github.com/spack/spack.git", spack_root.resolve().as_posix())
 
     # Stores information about the spack stack that will be remembered by spackter
     spackter_entry = {}
@@ -488,7 +498,7 @@ def create(
         if patch_files:
             print(f"===> Applying patches from: {spackter_patch_dir}")
             for file in patch_files:
-                result = apply_patch(file, spack_root, allow_errors_options)
+                result = apply_patch(file, spack_repo, allow_errors_options)
                 if result:
                     spackter_entry["patches"].append((file.name, True))
                 else:
@@ -510,7 +520,7 @@ def create(
             for line in file:
                 line = line.strip()
                 if line and not line.startswith('#'):
-                    result = apply_pr(line, spack_root, allow_errors_options)
+                    result = apply_pr(line, spack_repo, allow_errors_options)
                     if result:
                         spackter_entry["pull_requests"].append((line, True))
                     else:
