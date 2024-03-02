@@ -6,7 +6,7 @@ Examples can be found at `<SPACKTER_ROOT>/configs`.
 ## Usage (in its current state)
 Source spackter's `setup-env.sh` script. This puts the `spackter` command in your path and sets required environment variables.
 When spackter is first executed it installs a python virtual environment with all python dependencies. 
-Spackter only requires a semi recent version of `python3` and `git` to be installed on the system. 
+Spackter requires `python3.7+`  and `git` to be installed on the system. 
 
 ### Creating new spack stacks
 ![](demo/spackter_create.gif)
