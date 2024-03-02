@@ -15,11 +15,13 @@ import shutil
 
 spackter = typer.Typer()
 console = Console()
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 
 def get_allow_errors_options(allow_errors, no_allow_errors):
     allow_errors_options = {}
+    allow_options = []
+    no_allow_options = []
     
     if allow_errors:
         allow_options = allow_errors.split(",")
@@ -32,7 +34,7 @@ def get_allow_errors_options(allow_errors, no_allow_errors):
 
 
     if allow_errors and no_allow_errors:
-        intersection = list(set(allow_options) & set(no_allow_options))
+        intersection = set(allow_options) & set(no_allow_options)
         if intersection:
             print(f"===> Error: --allow-errors and --no-allow-errors contain same options: {intersection}")
             raise typer.Exit(code=1)
@@ -64,8 +66,9 @@ def run_shell_cmd(cmd: str, print_cmd=True, error_exit=True):
                 print(f"  $ {command}")
 
     with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, shell=True) as proc:
-        for line in proc.stdout:
-            print(line)
+        if proc.stdout:
+            for line in proc.stdout:
+                print(line)
         proc.communicate()
     result = subprocess.CompletedProcess(cmd, proc.returncode)
     if result.returncode:
@@ -117,7 +120,7 @@ def apply_pr(pr, spack_root, allow_errors_options):
     return result
 
 
-def spack_install(base_cmd: str, package: str, compiler: str, allow_errors_options):
+def spack_install(base_cmd: str, package: str, compiler: Optional[str], allow_errors_options):
     print(f"===> Installing {package}")
     cmd = base_cmd + f"spack install {package}"
     if compiler:
@@ -153,7 +156,7 @@ def read_stacks_file():
         with open(spackter_stacks, "r") as file:
             return yaml.safe_load(file.read())
     else:
-        return None
+        return {}
 
 
 def write_stacks_file(content):
@@ -204,7 +207,7 @@ def print_create_summary(spackter_entry):
     print(f"===> Use 'spackter load' to activate the stack or manually source: {spackter_entry['env_script']}")
 
 
-def print_compact_list(only_name: str = None):
+def print_compact_list(only_name: Optional[str] = None):
     stacks = read_stacks_file()
     table = Table("NAME", "ID", "COMPILER", "CONFIGS", "SPACK VERSION", "TYPE", "CREATED")
     for entry in stacks:
@@ -224,7 +227,7 @@ def print_compact_list(only_name: str = None):
     console.print(table)
 
 
-def select_stack(name, id: bool):
+def select_stack(name, id: Optional[bool]):
     spackter_stacks = read_stacks_file()
     stacks = []
     if not id:
@@ -316,12 +319,12 @@ def delete(
         raise typer.Exit(code=1)
     else:
         stack = selected[0]
-        spack_root = Path(selected[0]["prefix"] + "/" + selected[0]["name"])
+        spack_root = Path(stack["prefix"] + "/" + stack["name"])
         if not only_spackter_entry and spack_root.exists():
             if typer.confirm(f"===> Delete '{spack_root}' from disk?"):
                 shutil.rmtree(spack_root)
                 print(f"===> '{spack_root}' deleted.")
-        print(f"===> Removing '{selected[0]['name']}' from spackter database.")
+        print(f"===> Removing '{stack['name']}' from spackter database.")
         remove_stack(spack_root)
 
 
@@ -405,7 +408,7 @@ def create(
         Name of configs directory inside 'SPACKTER_ROOT/configs'
         """ 
         )] = "default",
-    prefix: Annotated[Optional[str],
+    prefix: Annotated[Optional[Path],
         typer.Option(help=
         """
         Install prefix path for this spack stack. Defaults to 'SPACKTER_ROOT/spack'
@@ -449,7 +452,7 @@ def create(
         prefix = spackter_root / "spack"
         print(f"===> Using default prefix: {prefix}") 
     else:
-        prefix = Path(prefix).expanduser().resolve()
+        prefix = prefix.expanduser().resolve()
 
     spack_root = prefix / name
 
@@ -688,8 +691,7 @@ def create(
     """
 )
 def main(version: Annotated[Optional[bool], typer.Option("--version", callback=version_callback, is_eager=True)] = None):
-    todo = "todo"
-    # print(f"spackter v{__version__}")
+    pass
 
 
 if __name__ == "__main__":
