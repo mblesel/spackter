@@ -17,7 +17,7 @@ import requests
 
 spackter = typer.Typer()
 console = Console()
-__version__ = "0.1.4"
+__version__ = "0.1.5"
 
 
 def get_allow_errors_options(allow_errors, no_allow_errors):
@@ -339,7 +339,6 @@ def delete(
         remove_stack(spack_root)
 
 
-# TODO how does spack load work?
 @spackter.command(help=
     """
     Outputs the location of the 'env.sh' script that needs to be sourced to activate 
@@ -359,7 +358,11 @@ def load(
         ID of spack stack. Needed if two stack with same name exist at different prefixes.
         """
         )] = False,
-    only_env_script: Annotated[Optional[bool], typer.Option("--only-env-script")] = False
+    only_env_script: Annotated[Optional[bool],
+        typer.Option("--only-env-script", help=
+        """
+        Only returns path to the 'env.sh' script and does not load the stack for the current seesion. Should be used to load a stack from inside a script.
+        """)] = False
 ):
     selected = select_stack(name, id)
     if not selected:
@@ -379,9 +382,7 @@ def load(
         stack = selected[0]
         if not only_env_script:
             print(f"===> Loading spack stack: {stack['name']} (ID {stack['id']})")
-            print("===> Source this environment script:")
-            print(f"{stack['env_script']}")
-            print("===> Using the 'spackter-load' command from your shell will load the stack automatically.")
+            print(f"===> Using this environment script: {stack['env_script']}")
         else:
             print(f"{stack['env_script']}")
         
