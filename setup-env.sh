@@ -15,7 +15,6 @@ spackter () {
             . $env_path
         fi
     else
-        echo ELSE
         ${SPACKTER_ROOT}/bin/spackter "$@"
     fi
 }
