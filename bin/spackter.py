@@ -181,6 +181,7 @@ def write_stacks_file(content):
     with open(spackter_stacks, "w") as file:
         file.write(yaml.safe_dump(content))
 
+
 def print_create_summary(spackter_entry):
     table = Table("Spackter create summary")
     t1 = Table(show_header=False)
@@ -690,8 +691,6 @@ def create(
 	# 	# Remove cached downloads, which are also available in the mirror
 	# 	./bin/spack clean --downloads
 	# fi
-
-
 
 
 @spackter.callback(help=

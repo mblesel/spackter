@@ -66,6 +66,9 @@ Set Height 450
 Set PlaybackSpeed 1.0
 Set TypingSpeed 0.1          
 Set CursorBlink false
+Hide
+Type ". ~/Projects/spackter/setup-env.sh" Enter
+Show
 Type "spackter load demo" Sleep 500ms  Enter
 Sleep 5s
 
