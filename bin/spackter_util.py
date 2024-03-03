@@ -1,9 +1,9 @@
 import typer
 import subprocess
 import os
-from pathlib import Path
 import yaml
 from typing import Optional
+from pathlib import Path
 
 
 def run_shell_cmd(cmd: str, print_cmd=True, error_exit=True):
@@ -59,8 +59,6 @@ def write_stacks_file(content):
 
     with open(spackter_stacks, "w") as file:
         file.write(yaml.safe_dump(content))
-
-
 
 
 def select_stack(name, id: Optional[bool]):

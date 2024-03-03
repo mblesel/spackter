@@ -1,4 +1,6 @@
-# TODO
+# Add the pull request number from the official spack github repository here 
+# Spackter will try to download and apply the pull request before building this spack stack
+# One number per line
 42828
 35914
 42070

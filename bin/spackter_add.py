@@ -3,7 +3,7 @@ from typing_extensions import Annotated
 from typing import Optional
 from pathlib import Path
 
-import globals
+from globals import __version__
 from spackter_util import read_stacks_file
 from spackter_util import write_stacks_file
 

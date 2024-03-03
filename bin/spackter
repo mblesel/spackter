@@ -13,7 +13,7 @@ if test -f ${PYTHON_BIN}; then
 else
     echo "==> Required Python environment for Spackter was not found at: ${SPACKTER_ROOT}/.venv"
     echo "==> Installing environment at: ${SPACKTER_ROOT}/.venv"
-    # TODO check for working python on system, and do version check for the Popen stuff
+    # TODO check for working python on system, and do version check for the Popen stuff (3.7+)
     /usr/bin/env python3 -m venv ${SPACKTER_ROOT}/.venv --prompt Spackter
     ${PIP_BIN} install --upgrade pip
     ${PIP_BIN} install typer[all]

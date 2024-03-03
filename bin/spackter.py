@@ -1,4 +1,5 @@
 import typer
+
 from typing_extensions import Annotated
 from typing import Optional
 from rich import print
@@ -11,6 +12,7 @@ import spackter_delete
 import spackter_add
 import spackter_create
 
+
 spackter = typer.Typer()
 
 
@@ -19,7 +21,7 @@ spackter.command(help=
     Add a spack stack that was not created by spackter to the database.
     """
     )(spackter_add.add)
-        
+
 
 spackter.command(help=
     """

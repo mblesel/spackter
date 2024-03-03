@@ -1,14 +1,17 @@
 import typer
+
+import shutil
+import requests
+import subprocess
+
 from typing_extensions import Annotated
 from typing import Optional
+from typing import Union
 from pathlib import Path
-import shutil
 from datetime import date
 from git import Repo
 from rich.table import Table
 from rich.align import Align
-import requests
-import subprocess
 
 
 from globals import __version__
@@ -22,7 +25,6 @@ from spackter_util import read_stacks_file
 
 
 
-# TODO Refactor into smaller functions?
 def create(
     name: Annotated[str,
         typer.Argument(help=
@@ -131,8 +133,45 @@ def create(
         raise typer.Exit(code=1)
 
     ##
-    ## Create fresh spack repo
+    ## Install the spack stack
     ##
+    ## Create fresh spack repo
+    spack_repo = clone_spack(prefix, spack_root, spack_branch, spack_commit)
+    # Stores information about the spack stack that will be remembered by spackter
+    spackter_entry = {}
+    ## Apply patches
+    spackter_entry["patches"] = handle_patches(spackter_config_dir, spack_repo, allow_errors_options)
+    ## Apply pull requests
+    spackter_entry["pull_requests"] = handle_prs(spackter_config_dir, spack_repo, allow_errors_options)
+    ## Copy spack config files
+    copy_config_files(spack_root, spackter_config_dir)
+
+    ## Basic commands required to run a spack command 
+    spack_env_script = spack_root / "share/spack/setup-env.sh"
+    base_cmd = "export SPACK_DISABLE_LOCAL_CONFIG=1;"
+    base_cmd += f". {spack_env_script};"
+    ## Handle mirrors
+    handle_mirror(mirror_path, with_mirror_path, base_cmd)
+    ## Install Compiler if needed
+    handle_compiler(compiler, base_cmd)
+    ## Install packages
+    spackter_entry["packages"] = handle_packages(spackter_config_dir, base_cmd, compiler,
+                                                 mirror_path, allow_errors_options)
+    ## Final steps of spack stack creation
+    spackter_entry["post_install"] = handle_epilogue(base_cmd, mirror_path, spackter_config_dir, 
+                                                     spack_root, allow_errors_options)
+    ## Generate env.sh script for this spack stack
+    generate_env_script(spackter_config_dir, spack_root, spack_env_script)
+    ## Create spackter entry for this spack stack
+    create_spackter_entry(spackter_entry, name, prefix, compiler, configs, spack_root, base_cmd)
+    ## Summary of spack stack creation
+    print_create_summary(spackter_entry)
+
+
+def clone_spack(prefix: Path,
+                spack_root: Path, 
+                spack_branch: Optional[str],
+                spack_commit: Optional[str]) -> Repo:
     prefix.mkdir(parents=True, exist_ok=True)
     if spack_root.exists():
         if typer.confirm("===> " + spack_root.resolve().as_posix() + " already exists. Overwrite it? (This will delete the whole directory)"):
@@ -151,14 +190,13 @@ def create(
             spack_repo.head.reference = spack_repo.create_head("spackter", f"{spack_commit}")
             spack_repo.head.reset(index=True, working_tree=True)
 
+    return spack_repo
 
-    # Stores information about the spack stack that will be remembered by spackter
-    spackter_entry = {}
 
-    ##
-    ## Apply patches
-    ##
-    spackter_entry["patches"] = []
+def handle_patches(spackter_config_dir: Path,
+                   spack_repo: Repo,
+                   allow_errors_options: dict[str, bool]) -> list[tuple[str, bool]]:
+    patches = []
     spackter_patch_dir = spackter_config_dir / "patches"
     if spackter_patch_dir.exists():
         patch_files = spackter_patch_dir.glob('*.patch')
@@ -167,20 +205,22 @@ def create(
             for file in patch_files:
                 result = apply_patch(file, spack_repo, allow_errors_options)
                 if result:
-                    spackter_entry["patches"].append((file.name, True))
+                    patches.append((file.name, True))
                 else:
-                    spackter_entry["patches"].append((file.name, False))
+                    patches.append((file.name, False))
         else:
             print("===> No patches to apply.")
     else:
         print(f"No 'patch' dir found at: {spackter_patch_dir}")
         print("===> No patches to apply.")
+    return patches
 
-    ##
-    ## Apply pull requests
-    ##
-    spackter_entry["pull_requests"] = []
+
+def handle_prs(spackter_config_dir: Path, 
+               spack_repo: Repo,
+               allow_errors_options: dict[str, bool]) -> list[tuple[str, bool]]:
     pr_file = spackter_config_dir / "pull-requests.spackter"
+    prs = []
     if pr_file.exists():
         print(f"===> Applying pull requests from: {pr_file}")
         with open(pr_file, "r") as file:
@@ -189,16 +229,16 @@ def create(
                 if line and not line.startswith('#'):
                     result = apply_pr(line, spack_repo, allow_errors_options)
                     if result:
-                        spackter_entry["pull_requests"].append((line, True))
+                        prs.append((line, True))
                     else:
-                        spackter_entry["pull_requests"].append((line, False))
+                        prs.append((line, False))
     else:
         print(f"===> No pull-requests file found at: {pr_file}")
         print("===> No pull requests will be applied.")
+    return prs
 
-    ##
-    ## Copy spack config files
-    ##
+
+def copy_config_files(spack_root: Path, spackter_config_dir: Path):
     spack_config_dir = spack_root / "etc/spack"
     print(f"===> Copying spack configuration files to {spack_config_dir}")
     config_files = spackter_config_dir.glob('*.yaml')
@@ -206,16 +246,11 @@ def create(
         print(f"===> Copying: {file.name}")
         shutil.copyfile(file, spack_config_dir / file.name)
 
-    ##
-    ## Basic commands required to run a spack command 
-    ##
-    spack_env_script = spack_root / "share/spack/setup-env.sh"
-    base_cmd = "export SPACK_DISABLE_LOCAL_CONFIG=1;"
-    base_cmd += f". {spack_env_script};"
-    
-    ##
-    ## Create Mirror
-    ##
+
+def handle_mirror(mirror_path: Optional[Path],
+                  with_mirror_path: Optional[Path],
+                  base_cmd: str):
+    # --create_mirror option
     if mirror_path:
         if mirror_path.exists():
             print(f"===> There already exists a directory at the given mirror path: {mirror_path}")
@@ -234,9 +269,7 @@ def create(
     else:
         print("===> No mirror will be created")
 
-    ##
-    ## With mirror
-    ##
+    # --with-mirror option
     if with_mirror_path:
         if with_mirror_path.exists():
             print(f"===> Using mirror at: {with_mirror_path}")
@@ -249,10 +282,9 @@ def create(
             print(f"===> Mirror was not found at: {with_mirror_path}")
             print("===> Exiting.")
             raise typer.Exit(code=1)
-            
-    ##
-    ## Install Compiler if needed
-    ##
+
+
+def handle_compiler(compiler: Optional[str], base_cmd: str):
     if compiler:
         cmd = base_cmd + f"spack install {compiler};"
         cmd += f"export location=$(spack location --install-dir {compiler});"
@@ -260,10 +292,13 @@ def create(
         print("===> Installing Compiler:")
         run_shell_cmd(cmd)
 
-    ##
-    ## Install packages
-    ##
-    spackter_entry["packages"] = []
+
+def handle_packages(spackter_config_dir: Path, 
+                    base_cmd: str,
+                    compiler: Optional[str],
+                    mirror_path: Optional[Path],
+                    allow_errors_options: dict[str, bool]) -> list[tuple[str, bool]]:
+    packages = []
     package_list = spackter_config_dir / "package-list.spackter"
     if package_list.exists():
         with open(package_list, "r") as file:
@@ -272,17 +307,20 @@ def create(
                 if line and not line.startswith('#'):
                     result = spack_install(base_cmd, line, compiler, mirror_path, allow_errors_options)
                     if result:
-                        spackter_entry["packages"].append((line,True))
+                        packages.append((line,True))
                     else:
-                        spackter_entry["packages"].append((line,False))
+                        packages.append((line,False))
     else:
         print(f"===> No package list file found at: {package_list}")
         print("===> No packages will be installed.")
+    return packages
 
-    ##
-    ## Final steps of spack stack creation
-    ##
 
+def handle_epilogue(base_cmd: str,
+                    mirror_path: Optional[Path],
+                    spackter_config_dir: Path,
+                    spack_root: Path,
+                    allow_errors_options: dict[str, bool]) -> dict[str, Union[bool, str]]:
 	# Remove all unneeded packages
     cmd = base_cmd + "spack gc --yes-to-all;"
     run_shell_cmd(cmd)
@@ -293,7 +331,14 @@ def create(
         run_shell_cmd(cmd)
 
     # Run post-install-script
-    spackter_entry["post_install"] = {}
+    post_install = handle_post_install_script(spackter_config_dir, spack_root, allow_errors_options)
+    return post_install
+
+
+def handle_post_install_script(spackter_config_dir: Path,
+                               spack_root: Path,
+                               allow_errors_options: dict[str, bool]) -> dict[str,Union[bool, str]]:
+    post_install = {}
     post_install_script = spackter_config_dir / "post-install-script.spackter"
     if not post_install_script.exists():
         print(f"===> No spackter post-install-script found at: {post_install_script}")
@@ -313,16 +358,18 @@ def create(
             elif not typer.confirm(f"===> Ignore errors in post-install-script?"):
                 print("===> Exiting.")
                 raise typer.Exit(code=1)
-            spackter_entry["post_install"]["success"] = False
+            post_install["success"] = False
         else:
-            spackter_entry["post_install"]["success"] = True
+            post_install["success"] = True
         with open(post_install_script, "r") as file:
             content = file.read()
-            spackter_entry["post_install"]["content"] = content
-        
-    ##
-    ## Generate env.sh script for this spack stack
-    ##
+            post_install["content"] = content
+    return post_install
+
+
+def generate_env_script(spackter_config_dir: Path,
+                        spack_root: Path,
+                        spack_env_script: Path):
     pre_script_path = spackter_config_dir / "pre-script.spackter"
     post_script_path = spackter_config_dir / "post-script.spackter"
     if not pre_script_path.exists():
@@ -345,13 +392,17 @@ def create(
         file.write(env_script)
         print(env_script)
 
-    ##
-    ## Create spackter entry for this spack stack
-    ##
-    # s_root = spack_root.resolve().as_posix()
+
+def create_spackter_entry(spackter_entry: dict[str,Union[str,bool,Union[str,bool,int]]],
+                          name: str,
+                          prefix: Path,
+                          compiler: Optional[str],
+                          configs: str,
+                          spack_root: Path,
+                          base_cmd: str):
     spackter_entry["name"] = name
     spackter_entry["prefix"] = prefix.resolve().as_posix()
-    spackter_entry["compiler"] = compiler
+    spackter_entry["compiler"] = compiler if compiler else ""
     spackter_entry["type"] = "SPACKTER"
     spackter_entry["configs"] = configs
     spackter_entry["env_script"] = (spack_root / "env.sh").resolve().as_posix()
@@ -384,11 +435,6 @@ def create(
         spackter_entry["id"] = 1
         stacks[spack_root.resolve().as_posix()] = spackter_entry
         write_stacks_file(stacks)
-
-    ##
-    ## Summary of spack stack creation
-    ##
-    print_create_summary(spackter_entry)
 
 
 def get_allow_errors_options(allow_errors, no_allow_errors):

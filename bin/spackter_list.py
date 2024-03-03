@@ -1,10 +1,8 @@
 from typing import Optional
-from rich.console import Console
 from rich.table import Table
 
+from globals import console
 from spackter_util import read_stacks_file
-
-console = Console()
 
 # TODO --long and --format
 def list():
@@ -29,5 +27,3 @@ def print_compact_list(only_name: Optional[str] = None):
             else:
                 table.add_row(name, f"{id}", compiler, configs, spack_version, type, created)
     console.print(table)
-
-
