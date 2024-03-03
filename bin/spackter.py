@@ -17,7 +17,7 @@ import requests
 
 spackter = typer.Typer()
 console = Console()
-__version__ = "0.1.5"
+__version__ = "0.1.6"
 
 
 def get_allow_errors_options(allow_errors, no_allow_errors):
@@ -87,7 +87,8 @@ def run_shell_cmd(cmd: str, print_cmd=True, error_exit=True):
 def apply_patch(file, spack_repo, allow_errors_options):
     print(f"===> Applying {file.name}")
     try:
-        result = spack_repo.git.execute(['git', 'apply', '--verbose', f'{file.resolve().as_posix()}'], with_extended_output=True)
+        cmd = ['git', 'apply', '--verbose', f'{file.resolve().as_posix()}']
+        result = spack_repo.git.execute(cmd, with_extended_output=True)
         print(result[1])
         print(result[2])
         return True
@@ -112,7 +113,8 @@ def apply_pr(pr, spack_repo, allow_errors_options):
     with open (f"{spack_repo.working_dir}/{pr}.diff", "w") as file:
         file.write(pr_data.text)
     try:
-        result = spack_repo.git.execute(['git', 'apply', '--verbose', f'{pr}.diff'], with_extended_output=True)
+        cmd = ['git', 'apply', '--verbose', f'{pr}.diff']
+        result = spack_repo.git.execute(cmd , with_extended_output=True)
         print(result[1])
         print(result[2])
         return True
@@ -131,14 +133,19 @@ def apply_pr(pr, spack_repo, allow_errors_options):
         return False
 
 
-def spack_install(base_cmd: str, package: str, compiler: Optional[str], allow_errors_options):
+def spack_install(base_cmd: str, package: str, compiler: Optional[str], mirror: Optional[Path], allow_errors_options):
     print(f"===> Installing {package}")
+    result_mirror = True
+    if mirror:
+        cmd = base_cmd + f'spack mirror create --directory "{mirror}" --dependencies {package};'
+        result_mirror = run_shell_cmd(cmd, error_exit=False)
+
     cmd = base_cmd + f"spack install {package}"
     if compiler:
         cmd += f" %{compiler}"
     cmd += ";"
     result = run_shell_cmd(cmd, error_exit=False)
-    if not result:
+    if (not result) or (not result_mirror):
         if "package" in allow_errors_options:
             if allow_errors_options["package"]:
                 print(f"===> Skipping installing: {package}")
@@ -398,10 +405,8 @@ def list():
     print_compact_list()
 
 
-# TODO Move individual actions into functions?
+# TODO Refactor into smaller functions?
 # TODO clone specific spack branch
-# TODO spack mirrors
-# TODO see if typer has something for possible values of an option
 @spackter.command(help=
     """
     Create a new spack stack with a given name.
@@ -448,6 +453,19 @@ def create(
         Takes comma separated string of: ['all', 'patch', 'pr', 'package', 'script']
         """,
         show_default=False)] = None,
+    create_mirror: Annotated[Optional[str],
+        typer.Option("--create-mirror", help=
+        """
+        Creates a mirror for all installed packages at the given path.
+        If the directory at the given path already exists it will be deleted!
+        """,
+        show_default=False)] = None,
+    with_mirror: Annotated[Optional[str],
+        typer.Option("--with-mirror", help=
+        """
+        Will use the path to a given mirror as spack mirror during stack creation.
+        """,
+        show_default=False)] = None 
 ):
     ## 
     ## Check arguments and env vars
@@ -472,12 +490,28 @@ def create(
     # Check --allow-errors and --no-allow-errors options
     allow_errors_options = get_allow_errors_options(allow_errors, no_allow_errors)
 
+    # Check mirror options
+    if create_mirror and with_mirror:
+        print("===> --create-mirror and --with-mirror can not noth be set.")
+        print("Exiting.")
+        raise typer.Exit(code=1)
+    # Check create_mirror
+    mirror_path = None
+    if create_mirror:
+        mirror_path = Path(create_mirror).resolve()
+    # Check with_mirror
+    with_mirror_path = None
+    if with_mirror:
+        with_mirror_path = Path(with_mirror).resolve()
+
+
+
     ##
     ## Create fresh spack repo
     ##
     prefix.mkdir(parents=True, exist_ok=True)
     if spack_root.exists():
-        if typer.confirm("===> " + spack_root.resolve().as_posix() + " already exists. Overwrite it?"):
+        if typer.confirm("===> " + spack_root.resolve().as_posix() + " already exists. Overwrite it? (This will delete the whole directory)"):
             shutil.rmtree(spack_root)
             remove_stack(spack_root)
         else:
@@ -549,6 +583,46 @@ def create(
     base_cmd = "export SPACK_DISABLE_LOCAL_CONFIG=1;"
     base_cmd += f". {spack_env_script};"
 
+    
+    ##
+    ## Create Mirror
+    ##
+    if mirror_path:
+        if mirror_path.exists():
+            print(f"===> There already exists a directory at the given mirror path: {mirror_path}")
+            if typer.confirm(f"Overwrite it? (This will delete the whole directory)"):
+                shutil.rmtree(mirror_path)
+            else:
+                print("===> Exiting.")
+                raise typer.Exit()
+        mirror_path.mkdir(parents=True, exist_ok=False)
+        
+        # Add mirror to spack
+        cmd = base_cmd + f"spack mirror add local file://{mirror_path}"
+        print(mirror_path)
+        print("===> Adding mirror to spack:")
+        run_shell_cmd(cmd)
+    else:
+        print("===> No mirror will be created")
+
+
+    ##
+    ## With mirror
+    ##
+    if with_mirror_path:
+        if with_mirror_path.exists():
+            print(f"===> Using mirror at: {with_mirror_path}")
+            # Add mirror to spack
+            cmd = base_cmd + f"spack mirror add local file://{with_mirror_path}"
+            print(with_mirror_path)
+            print("===> Adding mirror to spack:")
+            run_shell_cmd(cmd)
+        else:
+            print(f"===> Mirror was not found at: {with_mirror_path}")
+            print("===> Exiting.")
+            raise typer.Exit(code=1)
+            
+
     ##
     ## Install Compiler if needed
     ##
@@ -569,7 +643,7 @@ def create(
             for line in file:
                 line = line.strip()
                 if line and not line.startswith('#'):
-                    result = spack_install(base_cmd, line, compiler, allow_errors_options)
+                    result = spack_install(base_cmd, line, compiler, mirror_path, allow_errors_options)
                     if result:
                         spackter_entry["packages"].append((line,True))
                     else:
@@ -586,6 +660,12 @@ def create(
 	# Remove all unneeded packages
     cmd = base_cmd + "spack gc --yes-to-all;"
     run_shell_cmd(cmd)
+
+    # Remove cached downloads, which are also available in the mirror
+    if mirror_path:
+        cmd = base_cmd + "spack clean --downloads"
+        run_shell_cmd(cmd)
+
     # Run post-install-script
     spackter_entry["post_install"] = {}
     post_install_script = spackter_config_dir / "post-install-script.spackter"
@@ -613,6 +693,7 @@ def create(
         with open(post_install_script, "r") as file:
             content = file.read()
             spackter_entry["post_install"]["content"] = content
+        
 
 
     ##
