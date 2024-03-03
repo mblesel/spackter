@@ -60,3 +60,11 @@ The `spackter delete` command will remove a spack stack.
 The following options are available:
  * `--id`: If this option is set the first argument to `spackter delete` will be interpreted as an id instead of a name.
  * `--only-spackter-entry`: If this option is set the spack stack will only be removed from the spackter database and not be deleted from disk.
+
+### Adding external spack stacks
+The `spackter add` command will add a spack stack that was not created by spackter to the database.
+
+`spackter add` expects a name and a path to the root directory of the spack stack as arguments.
+The following Options are available:
+ * `--env-script=<value>`: A path to an env script for this stack which will be sourced when the stack is loaded.
+    By default `<SPACK_ROOT>/share/spack/setup-env.sh` is used.

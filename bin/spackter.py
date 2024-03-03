@@ -17,7 +17,7 @@ import requests
 
 spackter = typer.Typer()
 console = Console()
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 
 def get_allow_errors_options(allow_errors, no_allow_errors):
@@ -252,11 +252,11 @@ def select_stack(name, id: Optional[bool]):
     if not id:
         for entry in spackter_stacks:
             if not entry == "data" and spackter_stacks[entry]["name"] == name:
-                stacks.append(spackter_stacks[entry])
+                stacks.append((entry, spackter_stacks[entry]))
     else: 
         for entry in spackter_stacks:
             if not entry == "data" and spackter_stacks[entry]["id"] == int(name):
-                stacks.append(spackter_stacks[entry])
+                stacks.append((entry, spackter_stacks[entry]))
     return stacks
 
 
@@ -274,26 +274,96 @@ def version_callback(value: bool):
         raise typer.Exit()
 
 
-# TODO also allow rename?
 @spackter.command(help=
     """
-    NOT YET IMPLEMENTED
+    Add a spack stack that was not created by spackter to the database.
     """
 )
-def move():
-    print("===> TODO")
+def add(
+    name: Annotated[str,
+        typer.Argument(help=
+        """
+        Name for the spack stack.
+        """
+        )],
+    spack_root: Annotated[Path,
+        typer.Argument(help=
+        """
+        Path to the root directory of the spack stack.
+        """
+        )],
+    env_script: Annotated[Optional[str],
+        typer.Option("--env-script", help=
+        """
+        Path to the env script that shall be sourced when this stacked is loaded by spackter.
+        Defaults to '<SPACK_ROOT>/share/spack/setup-env.sh'
+        """,
+        show_default=False)] = None
+):
+    spack_root = spack_root.expanduser().resolve()
+    if not spack_root.exists():
+        print(f"===> Directory does not exist: {spack_root}")
+        print(f"===> Exiting.")
+        raise typer.Exit(code=1)
+    
+    if not (spack_root / "bin/spack").exists():
+        print(f"===> The given directory is not a spack installation: {spack_root}")
+        print(f"===> Exiting.")
+        raise typer.Exit(code=1)
 
+    if env_script:
+        env_script_path = Path(env_script).expanduser().resolve()
+        if not env_script_path.exists():
+            print(f"===> Could not find a env script at: {env_script_path}")
+            print(f"===> Exiting.")
+            raise typer.Exit(code=1)
+    else:
+        env_script_path = Path(spack_root / "share/spack/setup-env.sh").expanduser().resolve()
+        if not env_script_path.exists():
+            print(f"===> Could not find a default env script at: {env_script_path}")
+            print(f"===> Exiting.")
+            raise typer.Exit(code=1)
 
-# TODO mark as external
-# TODO option for env.sh file (default to spack's setup-env.sh)
-@spackter.command(help=
-    """
-    NOT YET IMPLEMENTED
-    """
-)
-def add():
-    print("===> TODO")
+    print(f"===> Adding spack stack '{name}' from '{spack_root} to spackter database.")
+    print(f"===> Following env script will be used when loading the stack: {env_script_path}")
 
+    spackter_entry = {}
+    spackter_entry["name"] = name
+    spackter_entry["prefix"] = spack_root.parent.resolve().as_posix()
+    spackter_entry["compiler"] = "UNKNOWN"
+    spackter_entry["type"] = "EXTERN"
+    spackter_entry["configs"] = "UNKNOWN"
+    spackter_entry["env_script"] = env_script_path.resolve().as_posix()
+    spackter_entry["created"] = "UNKNOWN"
+    spackter_entry["post_install"] = {}
+    spackter_entry["packages"] = []
+    spackter_entry["pull_requests"] = []
+    spackter_entry["patches"] = []
+    spackter_entry["spack_version"] = "UNKNOWN VERSION"
+    
+    stacks = read_stacks_file()
+    if stacks:
+        if spack_root.resolve().as_posix() in stacks:
+            print("===> Error: Could not add spack stack to spackter.")
+            print(f"===> There already exists a spack stack at: {spack_root} ")
+            print("===> Exiting.")
+            raise typer.Exit(code=1)
+
+        spackter_entry["id"] = stacks["data"]["id_counter"] + 1
+        stacks[spack_root.resolve().as_posix()] = spackter_entry 
+        stacks["data"]["id_counter"] += 1
+        stacks["data"]["stack_count"] += 1
+        write_stacks_file(stacks)
+    else:
+        stacks = {}
+        stacks["data"] = {}
+        stacks["data"]["stack_count"] = 1
+        stacks["data"]["id_counter"] = 1
+        stacks["data"]["spackter_version"] = __version__
+        spackter_entry["id"] = 1
+        stacks[spack_root.resolve().as_posix()] = spackter_entry
+        write_stacks_file(stacks)
+        
 
 # TODO --yes-to-all?
 @spackter.command(help=
@@ -337,8 +407,8 @@ def delete(
         print(f"===> Aborting.")
         raise typer.Exit(code=1)
     else:
-        stack = selected[0]
-        spack_root = Path(stack["prefix"] + "/" + stack["name"])
+        stack = selected[0][1]
+        spack_root = Path(selected[0][0])
         if not only_spackter_entry and spack_root.exists():
             if typer.confirm(f"===> Delete '{spack_root}' from disk?"):
                 shutil.rmtree(spack_root)
@@ -387,7 +457,7 @@ def load(
         print(f"===> Aborting.")
         raise typer.Exit(code=1)
     else:
-        stack = selected[0]
+        stack = selected[0][1]
         if not only_env_script:
             print(f"===> Loading spack stack: {stack['name']} (ID {stack['id']})")
             print(f"===> Using this environment script: {stack['env_script']}")
@@ -509,11 +579,11 @@ def create(
     # Check create_mirror
     mirror_path = None
     if create_mirror:
-        mirror_path = Path(create_mirror).resolve()
+        mirror_path = Path(create_mirror).expanduser().resolve()
     # Check with_mirror
     with_mirror_path = None
     if with_mirror:
-        with_mirror_path = Path(with_mirror).resolve()
+        with_mirror_path = Path(with_mirror).expanduser().resolve()
 
     # Check branch and commit options
     if spack_branch and spack_commit:
