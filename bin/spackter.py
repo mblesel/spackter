@@ -17,7 +17,7 @@ import requests
 
 spackter = typer.Typer()
 console = Console()
-__version__ = "0.1.6"
+__version__ = "0.2.0"
 
 
 def get_allow_errors_options(allow_errors, no_allow_errors):
@@ -406,7 +406,6 @@ def list():
 
 
 # TODO Refactor into smaller functions?
-# TODO clone specific spack branch
 @spackter.command(help=
     """
     Create a new spack stack with a given name.
@@ -465,7 +464,19 @@ def create(
         """
         Will use the path to a given mirror as spack mirror during stack creation.
         """,
-        show_default=False)] = None 
+        show_default=False)] = None, 
+    spack_branch: Annotated[Optional[str],
+        typer.Option("--spack_branch", help=
+        """
+        Will use the given spack branch for stack creation.
+        """,
+        show_default=False)] = None,
+    spack_commit: Annotated[Optional[str],
+        typer.Option("--spack_commit", help=
+        """
+        Will use the given spack commit for stack creation.
+        """,
+        show_default=False)] = None
 ):
     ## 
     ## Check arguments and env vars
@@ -493,7 +504,7 @@ def create(
     # Check mirror options
     if create_mirror and with_mirror:
         print("===> --create-mirror and --with-mirror can not noth be set.")
-        print("Exiting.")
+        print("===> Exiting.")
         raise typer.Exit(code=1)
     # Check create_mirror
     mirror_path = None
@@ -503,6 +514,12 @@ def create(
     with_mirror_path = None
     if with_mirror:
         with_mirror_path = Path(with_mirror).resolve()
+
+    # Check branch and commit options
+    if spack_branch and spack_commit:
+        print("===> --spack-branch and --spack-commit can not both be set.")
+        print("===> Exiting.")
+        raise typer.Exit(code=1)
 
 
 
@@ -519,7 +536,14 @@ def create(
             raise typer.Exit()
 
     print(f"===> Creating new spack stack at: {spack_root}")
-    spack_repo = Repo.clone_from("https://github.com/spack/spack.git", spack_root.resolve().as_posix())
+    if spack_branch:
+        spack_repo = Repo.clone_from("https://github.com/spack/spack.git", spack_root.resolve().as_posix(), multi_options=[f'--branch {spack_branch}'])
+    else:
+        spack_repo = Repo.clone_from("https://github.com/spack/spack.git", spack_root.resolve().as_posix())
+        if spack_commit:
+            spack_repo.head.reference = spack_repo.create_head("spackter", f"{spack_commit}")
+            spack_repo.head.reset(index=True, working_tree=True)
+
 
     # Stores information about the spack stack that will be remembered by spackter
     spackter_entry = {}
