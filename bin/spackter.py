@@ -859,13 +859,6 @@ def create(
     ## Summary of spack stack creation
     ##
     print_create_summary(spackter_entry)
-    
-    # TODO when implementing mirrors
-	# if test -n "${BOOTSTRAP_MIRROR}"
-	# then
-	# 	# Remove cached downloads, which are also available in the mirror
-	# 	./bin/spack clean --downloads
-	# fi
 
 
 @spackter.callback(help=
