@@ -1,0 +1,7 @@
+# This will be sourced before the spack stack itself is loaded via its setup-env.sh
+#
+# Set necessary environment variables here
+
+# Removing this line may lead to undefined behaviour because spackter expects to use global spack configs
+export SPACK_DISABLE_LOCAL_CONFIG=1
+
