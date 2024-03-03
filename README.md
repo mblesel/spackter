@@ -21,6 +21,8 @@ The following options are available:
  * `--allow-errors=<value>`: where `value` is a comma separated string of `['all', 'patch', 'pr', 'package', 'script']`. If a step in one of the listed phases fails spackter will automatically skip it and proceed with building the spack stack.
  * `--no-allow-errors=<value>`: where `value` is a comma separated string of `['all', 'patch', 'pr', 'package', 'script']`. If a step in one of the listed phases fails spackter will abort. If a phase is not mentioned in this or `--allow-errors`
     the user will be promted on how to proceed if an error occurs.
+ * `--create-mirror=<value>`: where `value` is a path to a not yet existing directory. Spackter will create a spack mirror at this path with all packages that are being installed during creation
+ * `--with-mirror=<value>`: where `value` is a path to an existing spack mirror. Spackter will use this mirror during stack creation.
 
 #### Spackter configs
 Multiple phases of the creation of a spack stack are configured via the files contained in the given config directory.
