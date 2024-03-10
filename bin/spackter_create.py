@@ -437,7 +437,7 @@ def create_spackter_entry(spackter_entry: dict[str,Union[str,bool,Union[str,bool
         write_stacks_file(stacks)
 
 
-def get_allow_errors_options(allow_errors, no_allow_errors):
+def get_allow_errors_options(allow_errors: Optional[str], no_allow_errors: Optional[str]):
     allow_errors_options = {}
     allow_options = []
     no_allow_options = []
@@ -477,7 +477,7 @@ def get_allow_errors_options(allow_errors, no_allow_errors):
     return allow_errors_options
 
 
-def apply_patch(file, spack_repo, allow_errors_options):
+def apply_patch(file: Path, spack_repo, allow_errors_options: dict[str,bool]):
     print(f"===> Applying {file.name}")
     try:
         cmd = ['git', 'apply', '--verbose', f'{file.resolve().as_posix()}']
@@ -499,7 +499,7 @@ def apply_patch(file, spack_repo, allow_errors_options):
         return False
 
 
-def apply_pr(pr, spack_repo, allow_errors_options):
+def apply_pr(pr: str, spack_repo, allow_errors_options: dict[str,bool]):
     print(f"===> Applying PR {pr}")
     # TODO delete diff file while still getting error code from git apply command
     pr_data = requests.get(f"https://github.com/spack/spack/pull/{pr}.diff")
@@ -526,7 +526,10 @@ def apply_pr(pr, spack_repo, allow_errors_options):
         return False
 
 
-def spack_install(base_cmd: str, package: str, compiler: Optional[str], mirror: Optional[Path], allow_errors_options):
+def spack_install(base_cmd: str, package: str,
+                  compiler: Optional[str],
+                  mirror: Optional[Path],
+                  allow_errors_options: dict[str,bool]):
     print(f"===> Installing {package}")
     result_mirror = True
     if mirror:
@@ -549,5 +552,3 @@ def spack_install(base_cmd: str, package: str, compiler: Optional[str], mirror: 
             print("Exiting.")
             raise typer.Exit(code=1)
     return result
-
-

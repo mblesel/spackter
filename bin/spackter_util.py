@@ -49,7 +49,7 @@ def read_stacks_file():
         return {}
 
 
-def write_stacks_file(content):
+def write_stacks_file(content: dict[str, dict]):
     spackter_root = get_spackter_root()
     spackter_data_dir = spackter_root / "data"
     spackter_stacks = spackter_data_dir / "stacks.yaml"
@@ -61,7 +61,7 @@ def write_stacks_file(content):
         file.write(yaml.safe_dump(content))
 
 
-def select_stack(name, id: Optional[bool]):
+def select_stack(name: str, id: Optional[bool]):
     spackter_stacks = read_stacks_file()
     stacks = []
     if not id:

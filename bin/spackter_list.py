@@ -64,7 +64,7 @@ def print_compact_list(only_name: Optional[str] = None):
     console.print(table)
 
 
-def print_create_summary(spackter_entry):
+def print_create_summary(spackter_entry: dict):
     table = Table("Spackter create summary")
     t1 = Table(show_header=False)
     t2 = Table(title="Patches", show_header=False)
