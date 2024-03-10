@@ -10,18 +10,16 @@ from typing import Union
 from pathlib import Path
 from datetime import date
 from git import Repo
-from rich.table import Table
-from rich.align import Align
 
 
 from globals import __version__
-from globals import console
 
 from spackter_util import get_spackter_root
 from spackter_util import run_shell_cmd
 from spackter_util import remove_stack
 from spackter_util import write_stacks_file
 from spackter_util import read_stacks_file
+from spackter_list import print_create_summary
 
 
 
@@ -167,6 +165,7 @@ def create(
     create_spackter_entry(spackter_entry, name, prefix, compiler, configs, spack_root, base_cmd)
     ## Summary of spack stack creation
     print_create_summary(spackter_entry)
+    print(f"===> Use 'spackter load' to activate the stack or manually source: {spackter_entry['env_script']}")
 
 
 def clone_spack(prefix: Path,
@@ -552,38 +551,3 @@ def spack_install(base_cmd: str, package: str, compiler: Optional[str], mirror: 
     return result
 
 
-def print_create_summary(spackter_entry):
-    table = Table("Spackter create summary")
-    t1 = Table(show_header=False)
-    t2 = Table(title="Patches", show_header=False)
-    t3 = Table(title="Pull Requests",show_header=False)
-    t4 = Table(title="Packages", show_header=False)
-    t5 = Table(title="Packages", show_header=False)
-
-    t1.add_row("Name", spackter_entry['name'])
-    t1.add_row("ID", f"{spackter_entry['id']}")
-    t1.add_row("Location", spackter_entry['prefix'] + "/" + spackter_entry['name'])
-    if spackter_entry["compiler"]:
-        t1.add_row("Compiler", spackter_entry['compiler'])
-    else:
-        t1.add_row("Compiler", "System")
-    t1.add_row("Spack version", spackter_entry['spack_version'])
-    for patch in spackter_entry['patches']: 
-        status = "SUCCESS" if patch[1] else "FAILED"
-        t2.add_row(patch[0], status)
-    for pr in spackter_entry['pull_requests']:
-        status = "SUCCESS" if pr[1] else "FAILED"
-        t3.add_row(pr[0], status)
-    for pkg in spackter_entry['packages']:
-        status = "SUCCESS" if pkg[1] else "FAILED"
-        t4.add_row(pkg[0], status)
-    status = "SUCCESS" if spackter_entry['post_install']['success'] else "FAILED"
-    t5.add_row("Post install script", status)
-
-    table.add_row(Align(t1, align="center"))
-    table.add_row(Align(t2, align="center"))
-    table.add_row(Align(t3, align="center"))
-    table.add_row(Align(t4, align="center"))
-    table.add_row(Align(t5, align="center"))
-    console.print(table)
-    print(f"===> Use 'spackter load' to activate the stack or manually source: {spackter_entry['env_script']}")
