@@ -44,6 +44,9 @@ For examples of all of these configurations setttings see the `configs/test` dir
 ![](demo/spackter_list.gif)
 The `spackter list` command gives a list of all installed spack stacks and some of their most important configuration options.
 The given `ID` for each spack stack can be used with the `--id` option of the following commands if there are multiple spack stacks with the same name but at different prefixes.
+`spackter list` takes an optional name/id arguments to show more information about a specific spack stack.
+The following options are available:
+ * `--id`: If this option is set the first argument to `spackter list` will be interpreted as an id instead of a name.
 ### Loading a spack stack
 ![](demo/spackter_load.gif)
 The `spackter load` command is used to load a spack stack.
