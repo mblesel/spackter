@@ -8,12 +8,11 @@ from globals import console
 from spackter_util import read_stacks_file
 from spackter_util import select_stack
 
-# TODO --long and --format
 def list(
     name: Annotated[Optional[str],
         typer.Argument(help=
         """
-        TODO
+        Name of a spack stack to list more detailed information.
         """)] = "",
     id: Annotated[Optional[bool],
         typer.Option("--id", help=

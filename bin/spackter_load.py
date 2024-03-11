@@ -21,7 +21,8 @@ def load(
     only_env_script: Annotated[Optional[bool],
         typer.Option("--only-env-script", help=
         """
-        Only returns path to the 'env.sh' script and does not load the stack for the current seesion. Should be used to load a stack from inside a script.
+        Only returns path to the 'env.sh' script and does not load the stack for the current session.
+        Should be used to load a stack from inside a script.
         """)] = False
 ):
     selected = select_stack(name, id)
