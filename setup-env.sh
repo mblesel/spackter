@@ -5,7 +5,7 @@ export SPACKTER_ROOT=$(readlink -f $(dirname ${BASH_SOURCE[0]}))
 
 spackter () {
     # echo $@ | grep -o '\-\-only\-env\-script'
-    if [ "$1" = "load" ] && [ -z $(echo $@ | grep -o "\--only-env-script") ]; then
+    if [ "$1" = "load" ] && [ -z $(echo $@ | grep -o "\--only-env-script") ] && [ -z $(echo $@ | grep -o "\--help") ] ; then
         local out=$(${SPACKTER_ROOT}/bin/spackter "$@")
         local env_path=$(echo $out | grep -o '/[^ ]*' | awk 'END{print}')
         if [[ -z "$env_path" ]]; then
