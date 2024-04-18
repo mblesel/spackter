@@ -1,0 +1,11 @@
+# This will be run as a bash script at the end of the spack stack installation
+# The script wille be called with 'bash -e -x <script>'
+# If you need to do any custom modifications to your spack stack do it here
+# The script will be run from the root directory of the installed spack stack
+# This will only be run once at the end of a 'spackter create' command
+
+# Precreate the variables for our hack in setup-env.sh
+./bin/spack --print-shell-vars sh,modules > share/spack/setup-env.vars
+
+# This is required for chaining to work
+./bin/spack module tcl refresh --delete-tree --yes-to-all

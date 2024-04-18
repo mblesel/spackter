@@ -1,0 +1,16 @@
+# This will be sourced after the spack stack itself is loaded via its setup-env.sh
+#
+# For example, load some modules here that you always want to have available when the stack is used
+
+#module try-load man-db
+#
+#module load gcc
+#module load python
+#module load mpich
+#
+#module load gdb
+#module load git
+#module load nano
+#module load valgrind
+#module load vim
+

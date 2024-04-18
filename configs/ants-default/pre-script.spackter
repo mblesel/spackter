@@ -1,0 +1,47 @@
+# This will be sourced before the spack stack itself is loaded via its setup-env.sh
+#
+# Set necessary environment variables here
+
+# Removing this line may lead to undefined behaviour because spackter expects to use global spack configs
+
+# Forcefully unload existing environment-modules so we can use a new one
+# if command -v module >/dev/null 2>&1
+# then
+# 	module purge
+#
+# 	unset -f _module
+# 	unset -f _module_avail
+# 	unset -f _module_comgen_words_and_files
+# 	unset -f _module_long_arg_list
+# 	unset -f _module_not_yet_loaded
+# 	unset -f _module_raw
+# 	unset -f _module_savelist
+# 	unset -f _module_stashlist
+# 	unset -f _ml
+#
+# 	unset -f module
+# 	unset -f ml
+# 	unset -f switchml
+#
+# 	unset LOADEDMODULES
+# 	unset MODULEPATH
+# 	unset MODULEPATH_modshare
+# 	unset MODULES_CMD
+# 	unset MODULESHOME
+# 	unset MODULES_RUN_QUARANTINE
+#
+# 	unset __MODULES_LMINIT
+# fi
+
+export SPACK_DISABLE_LOCAL_CONFIG=1
+export SPACK_USER_CACHE_PATH=$(dirname $(readlink -f "$BASH_SOURCE[0]"))/cache
+
+export SLURM_OVERLAP=1
+export SLURM_MPI_TYPE=pmi2
+
+
+export FI_PROVIDER=tcp
+export FI_TCP_IFACE=cpu0
+
+export MODULES_VERBOSITY=concise
+
