@@ -147,7 +147,7 @@ def create(
     ## Basic commands required to run a spack command 
     spack_env_script = spack_root / "share/spack/setup-env.sh"
     base_cmd = "export SPACK_DISABLE_LOCAL_CONFIG=1;"
-    base_cmd = "export SPACK_USER_CACHE_PATH={spack_root}/cache;"
+    base_cmd = f"export SPACK_USER_CACHE_PATH={spack_root}/cache;"
     base_cmd += f". {spack_env_script};"
     ## Handle mirrors
     handle_mirror(mirror_path, with_mirror_path, base_cmd)
