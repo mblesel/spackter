@@ -2,16 +2,6 @@
 
 # Heavily influenced by: https://tylerthrailkill.com/2019-01-19/writing-bash-completion-script-with-subcommands/
 
-# _spackter_completions() {
-#     if [[ "${#COMP_WORDS[@]}" != "2" ]]; then
-#         return
-#     fi
-#
-#     COMPREPLY=($(compgen -W "load list create add delete " "${COMP_WORDS[1]}"))
-# }
-#
-# complete -F _spackter_completions spackter
-
 
 _spackter() {
   local i=1 cmd
@@ -68,11 +58,7 @@ _spackter_add ()
   while [[ $subcommand_index -lt $COMP_CWORD ]]; do
     local s="${COMP_WORDS[subcommand_index]}"
     case "$s" in
-      plain)
-        _main_subcommand_plain 
-        return
-        ;;
-      help) 
+      --help) 
         COMPREPLY=""
         return
         ;;
@@ -81,8 +67,9 @@ _spackter_add ()
   done
 
   local cur="${COMP_WORDS[COMP_CWORD]}"
-  compopt -o default
-  COMPREPLY=($(compgen -W "--help --env-script=" -- "$cur"))
+  compopt -o nospace
+  compopt -o filenames
+  COMPREPLY=($(compgen -W "--help --env-script" -d  -- "$cur"))
 }
 
 _spackter_create ()
@@ -104,11 +91,7 @@ _spackter_create ()
   while [[ $subcommand_index -lt $COMP_CWORD ]]; do
     local s="${COMP_WORDS[subcommand_index]}"
     case "$s" in
-      plain)
-        _main_subcommand_plain 
-        return
-        ;;
-      help) 
+      --help) 
         COMPREPLY=""
         return
         ;;
@@ -117,7 +100,7 @@ _spackter_create ()
   done
 
   local cur="${COMP_WORDS[COMP_CWORD]}"
-  COMPREPLY=($(compgen -W "--configs= --prefix= --compiler= --allow-errors= --no-allow-errors= --create-mirror= --with-mirror= --spack_branch= --spack_commit= --help" -- "$cur"))
+  COMPREPLY=($(compgen -W "--configs --prefix --compiler --allow-errors --no-allow-errors --create-mirror --with-mirror --spack_branch --spack_commit --help" -- "$cur"))
 } 
 
 _spackter_delete ()
@@ -139,11 +122,7 @@ _spackter_delete ()
   while [[ $subcommand_index -lt $COMP_CWORD ]]; do
     local s="${COMP_WORDS[subcommand_index]}"
     case "$s" in
-      plain)
-        _main_subcommand_plain 
-        return
-        ;;
-      help) 
+      --help) 
         COMPREPLY=""
         return
         ;;
@@ -174,11 +153,7 @@ _spackter_list ()
   while [[ $subcommand_index -lt $COMP_CWORD ]]; do
     local s="${COMP_WORDS[subcommand_index]}"
     case "$s" in
-      plain)
-        _main_subcommand_plain 
-        return
-        ;;
-      help) 
+      --help) 
         COMPREPLY=""
         return
         ;;
@@ -210,8 +185,8 @@ _spackter_load ()
   while [[ $subcommand_index -lt $COMP_CWORD ]]; do
     local s="${COMP_WORDS[subcommand_index]}"
     case "$s" in
-      plain)
-        _main_subcommand_plain 
+      --help) 
+        COMPREPLY=""
         return
         ;;
     esac
