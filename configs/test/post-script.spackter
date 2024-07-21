@@ -1,4 +1,0 @@
-# This will be sourced after the spack stack itself is loaded via its setup-env.sh
-#
-# For example, load some modules here that you always want to have available when the stack is used
-

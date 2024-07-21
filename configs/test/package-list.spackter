@@ -1,6 +1,0 @@
-# List of packages to be installed when creating this spack stack
-# One entry per line. Version can be specified via spack syntax
-
-# Keep this if your system does not provide environment-modules
-# environment-modules
-gmake
