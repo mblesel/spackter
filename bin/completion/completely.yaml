@@ -1,0 +1,43 @@
+spackter:
+- --help
+- --version
+- add
+- create
+- delete
+- list
+- load
+
+spackter add:
+- --help
+- --env-script=
+- <directory>
+
+spackter create:
+- --help
+- --configs=
+- --prefix=
+- --compiler=
+- --allow-errors=
+- --no-allow-errors=
+- --create-mirror=
+- --with-mirror=
+- --spack-branch=
+- --spack-commit=
+
+spackter delete:
+- --help
+- --id
+- --only-spackter-entry
+- $(spackter list | grep -e "SPACKTER" -e "EXTERN" | tr -s " " | cut -d " " -f 2 | paste -s -d " ")
+
+spackter list:
+- --help
+- --id
+- $(spackter list | grep -e "SPACKTER" -e "EXTERN" | tr -s " " | cut -d " " -f 2 | paste -s -d " ")
+
+spackter load:
+- --help
+- --id
+- --only-env-script=
+- $(spackter list | grep -e "SPACKTER" -e "EXTERN" | tr -s " " | cut -d " " -f 2 | paste -s -d " ")
+
