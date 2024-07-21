@@ -1,0 +1,68 @@
+packages:
+  adios:
+    require: "+hdf5"
+  adios2:
+    require: "+hdf5"
+  binutils:
+    # LLVM depends on binutils with these variants
+    require: "+gold+headers+ld+plugins"
+  boost:
+    # Valgrind depends on Boost with these variants
+    require: "+atomic+chrono+exception+system+thread"
+  cairo:
+    # FIXME +svg cannot be concretized at the moment
+    require: "+fc+ft+gobject+pdf+png+X"
+  curl:
+    require: "+libidn2+nghttp2"
+  doxygen:
+    require: "+graphviz"
+  environment-modules:
+    require: "target=x86_64"
+  gdb:
+    # FIXME +debuginfod causes elfutils to fail building
+    require: "~debuginfod~python"
+  gnuplot:
+    require: "+X"
+  graphviz:
+    require: "+libgd+pangocairo+poppler"
+  hdf5:
+    require: "+hl+szip+threadsafe"
+  libfabric:
+    require: "fabrics=sockets,tcp,udp,verbs,rxd,rxm"
+  libfuse:
+    # FIXME Check whether this needs to be the same version as the system FUSE
+    require: "~utils"
+  libssh2:
+    require: "crypto=mbedtls"
+  mbedtls:
+    require: "libs=shared,static"
+  mpi:
+    require: "mpich"
+  mpich:
+    require: "device=ch4 netmod=ofi"
+  octave:
+    require: "+arpack+fftw+fontconfig+freetype+gl2ps+gnuplot+hdf5+llvm+opengl+qrupdate+qscintilla+qt+readline+suitesparse"
+  pango:
+    require: "+X"
+  pcre:
+    require: "+jit"
+  py-matplotlib:
+    require: "backend=qt5agg"
+  py-torch:
+    require: "~mkldnn"
+  qt:
+    require: "+opengl"
+  qt-base:
+    require: "+opengl"
+  vim:
+    require: "features=huge +python"
+  zstd:
+    require: "+programs"
+  all:
+    # FIXME We cannot use requirements here (https://github.com/spack/spack/issues/34341)
+    # FIXME require should work now
+    # Keep in sync with bootstrap script
+    compiler: [gcc@13.2.0]
+    # Make sure to build for a generic architecture
+    target: [x86_64_v3]
+    # Warning: Adding global variants resets per-package variants (https://github.com/spack/spack/pull/10466)

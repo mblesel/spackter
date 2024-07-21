@@ -1,0 +1,66 @@
+test "$(id --user)" -eq 0 && return 0
+
+# Forcefully unload existing environment-modules so we can use a new one
+# if command -v module >/dev/null 2>&1
+# then
+# 	module purge
+#
+# 	unset -f _module
+# 	unset -f _module_avail
+# 	unset -f _module_comgen_words_and_files
+# 	unset -f _module_long_arg_list
+# 	unset -f _module_not_yet_loaded
+# 	unset -f _module_raw
+# 	unset -f _module_savelist
+# 	unset -f _module_stashlist
+# 	unset -f _ml
+#
+# 	unset -f module
+# 	unset -f ml
+# 	unset -f switchml
+#
+# 	unset LOADEDMODULES
+# 	unset MODULEPATH
+# 	unset MODULEPATH_modshare
+# 	unset MODULES_CMD
+# 	unset MODULESHOME
+# 	unset MODULES_RUN_QUARANTINE
+#
+# 	unset __MODULES_LMINIT
+# fi
+
+export SPACK_DISABLE_LOCAL_CONFIG=1
+
+export SLURM_OVERLAP=1
+export SLURM_MPI_TYPE=pmi2
+
+# FIXME PMIx prints warning about missing Munge (https://github.com/open-mpi/ompi/issues/11557)
+#export PMIX_MCA_psec=^munge
+
+if test 'ants' = 'ants' -o '@BOOTSTRAP_CONFIG@' = 'ants-old'
+then
+	export FI_PROVIDER=tcp
+	export FI_TCP_IFACE=cpu0
+fi
+
+export MODULES_VERBOSITY=concise
+
+if test "$(hostname --short)" = 'ants'
+then
+	alias mpiexec='printf "You are attempting to execute an MPI job on the login node, please use SLURM instead.\n"'
+	alias mpirun='printf "You are attempting to execute an MPI job on the login node, please use SLURM instead.\n"'
+fi
+
+. /opt/spack/20240406/spack/share/spack/setup-env.sh
+
+module try-load man-db
+
+module load gcc
+module load python
+module load mpich
+
+module load gdb
+module load git
+module load nano
+module load valgrind
+module load vim
