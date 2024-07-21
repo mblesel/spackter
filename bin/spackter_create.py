@@ -204,7 +204,7 @@ def create(
     ## Basic commands required to run a spack command
     spack_env_script = spack_root / "share/spack/setup-env.sh"
     base_cmd = "export SPACK_DISABLE_LOCAL_CONFIG=1;"
-    base_cmd = f"export SPACK_USER_CACHE_PATH={spack_root}/cache;"
+    base_cmd += f"export SPACK_USER_CACHE_PATH={spack_root}/cache;"
     base_cmd += f". {spack_env_script};"
     ## Handle mirrors
     if not with_mirror:
@@ -234,6 +234,7 @@ def create(
     create_spackter_entry(
         spackter_entry, name, prefix, compiler, configs, spack_root, base_cmd, False
     )
+
     ## Summary of spack stack creation
     print_create_summary(spackter_entry)
     print(
@@ -553,7 +554,10 @@ def create_spackter_entry(
             write_stacks_file(stacks)
     else:
         stacks = read_stacks_file()
-        stacks[spack_root.resolve().as_posix()]["type"] = "SPACKTER"
+        stack = stacks[spack_root.resolve().as_posix()]
+        stack["type"] = "SPACKTER"
+        stack["packages"] = spackter_entry["packages"]
+        stack["post_install"] = spackter_entry["post_install"]
         write_stacks_file(stacks)
 
 
