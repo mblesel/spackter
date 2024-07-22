@@ -10,4 +10,11 @@ npm
 cmake
 ninja
 perl
+wget
+ripgrep
+xclip
+xclipboard
+py-pynvim
+fd
+fzf
 
