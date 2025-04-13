@@ -11,6 +11,7 @@ module load xclipboard
 module load py-pynvim
 module load fd
 module load fzf
+module load stow
 
 alias vim="nvim"
 alias vi="/bin/vi"
