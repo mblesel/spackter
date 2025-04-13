@@ -3,15 +3,17 @@
 # For example, load some modules here that you always want to have available when the stack is used
 
 module load neovim
+module load py-pynvim
 module load npm
 module load wget
 module load ripgrep
 module load xclip
 module load xclipboard
-module load py-pynvim
 module load fd
 module load fzf
 module load stow
+# nvim problems otherwise
+module unload python-venv
 
 alias vim="nvim"
 alias vi="/bin/vi"
