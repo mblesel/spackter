@@ -7,11 +7,9 @@ modules:
       - CPLUS_INCLUDE_PATH
     # LD_RUN_PATH automatically sets the rpath if users do not overwrite it (https://github.com/spack/spack/pull/11071)
     lib:
-      - LD_LIBRARY_PATH
       - LIBRARY_PATH
       - LD_RUN_PATH
     lib64:
-      - LD_LIBRARY_PATH
       - LIBRARY_PATH
       - LD_RUN_PATH
   default:
@@ -24,15 +22,11 @@ modules:
         all: "{name}/{version}"
       # Create a module for the compiler we build using the system compiler
       include: ["gcc"]
-      # Do not generate modules for anything built with the system compiler
-      # Keep in sync with install script and packages.yaml
-      # exclude: ["%gcc@8.5.0"]
       # Hide modules for dependencies
-      # FIXME requires modules >= 4.7 (https://github.com/spack/spack/issues/40940)
-      hide_implicits: false
+      hide_implicits: true
       all:
         # Only load run dependencies
-        autoload: "direct"
+        autoload: "run"
         # FIXME Causes conflicts because GCC depends on conflicting packages
         #conflict: ['{name}']
         # Do not set compiler variables because llvm is required by some packages
